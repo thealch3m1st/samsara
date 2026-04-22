@@ -545,9 +545,24 @@
   }
 
   async function openReader(startPage, anchor){
-    await ensureBook();
+    // Show "loading" state immediately so the user doesn't see an empty reader.
+    bookInner.hidden = true;
+    reader.hidden = false;
+    readerPages.innerHTML = `<div class="reader-loading">Loading the book…</div>`;
+    readerSubtitle.textContent = "loading…";
 
-    const pageNumbers = Object.keys(bookData).map(n => +n).sort((a,b) => a - b);
+    try {
+      await ensureBook();
+    } catch (e) {
+      readerPages.innerHTML = `<div class="reader-loading">Failed to load the book: ${e.message}. Close and try again.</div>`;
+      return;
+    }
+
+    const pageNumbers = Object.keys(bookData || {}).map(n => +n).sort((a,b) => a - b);
+    if (!pageNumbers.length) {
+      readerPages.innerHTML = `<div class="reader-loading">The book appears to be empty. Close and try again.</div>`;
+      return;
+    }
     readerPages.innerHTML = pageNumbers.map(n => {
       const body = bookData[n];
       const paragraphs = body.split(/\n\s*\n+/)
@@ -560,9 +575,6 @@
         </section>
       `;
     }).join("");
-
-    bookInner.hidden = true;
-    reader.hidden = false;
 
     // Scroll to starting page. If the anchor phrase lives within the
     // page, scroll so that anchor text is visible; otherwise page top.
@@ -592,6 +604,19 @@
       updateWheelHighlight();
     }, { root: reader, threshold: 0.3 });
     reader.querySelectorAll(".reader-page").forEach(el => pageObserver.observe(el));
+
+    // Initial seed: the page the reader opened on is already in view, so
+    // compute highlights immediately instead of waiting for the first scroll.
+    requestAnimationFrame(() => {
+      const readerRect = reader.getBoundingClientRect();
+      reader.querySelectorAll(".reader-page").forEach(el => {
+        const r = el.getBoundingClientRect();
+        if (r.bottom > readerRect.top && r.top < readerRect.bottom) {
+          visiblePages.add(+el.dataset.page);
+        }
+      });
+      updateWheelHighlight();
+    });
   }
 
   function closeReader(){

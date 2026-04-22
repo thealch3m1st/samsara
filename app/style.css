@@ -629,6 +629,7 @@ button.term:focus-visible {
 
 /* ---------- L4: full-book reader panel ---------- */
 
+#reader[hidden] { display: none !important; }
 #reader {
   height: calc(100vh - 40px);
   max-height: 900px;
@@ -700,6 +701,13 @@ button.term:focus-visible {
 .reader-page {
   margin-bottom: 32px;
 }
+.reader-loading {
+  color: var(--ink-dim);
+  font-style: italic;
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 15px;
+}
 .reader-page-num {
   display: block;
   text-align: center;
@@ -708,11 +716,15 @@ button.term:focus-visible {
   letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--gold);
-  padding: 14px 0 12px;
-  position: sticky;
-  top: 0;
-  background: linear-gradient(180deg, var(--bg-2) 60%, transparent 100%);
-  z-index: 2;
+  padding: 18px 0 14px;
+  margin-top: 8px;
+  border-top: 1px dashed rgba(212, 169, 74, 0.18);
+  padding-top: 18px;
+}
+.reader-page:first-child .reader-page-num {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 6px;
 }
 .reader-page-body {
   font-family: var(--serif);

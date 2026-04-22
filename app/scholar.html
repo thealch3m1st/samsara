@@ -3,111 +3,360 @@
 <head>
 <meta charset="utf-8" />
 <title>Samsara Scholar — L5 prototype</title>
+<link rel="stylesheet" href="style.css?v=v9" />
 <style>
-  :root {
-    --bg:#0b0a08; --bg-2:#14110c; --ink:#efe4c9; --dim:#b9ac8c;
-    --gold:#d4a94a; --gold-b:#f1c866; --rule:#3a2f1d; --accent:#c94a33;
-    --serif: "Cormorant Garamond", "EB Garamond", Georgia, serif;
-    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  /* Scholar-specific styles — inherits palette + typography from style.css */
+
+  body {
+    background:
+      radial-gradient(ellipse at 50% -10%, #1f180e 0%, var(--bg) 55%) fixed,
+      var(--bg);
+    min-height: 100vh;
   }
-  * { box-sizing: border-box; }
-  html,body { margin:0; background: var(--bg); color: var(--ink);
-    font-family: var(--serif); font-size: 17px; line-height: 1.55; min-height: 100vh; }
-  header { padding: 28px 24px 20px; text-align: center; border-bottom: 1px solid var(--rule);
-           position: relative; }
-  h1 { font-weight: 500; letter-spacing: 0.35em; text-transform: uppercase; margin: 0;
-       color: var(--gold-b); font-size: 24px; }
-  h1 small { display: block; color: var(--dim); font-size: 11px; letter-spacing: 0.28em;
-             margin-top: 6px; text-transform: uppercase; font-family: var(--sans); }
-  .home-link { position: absolute; top: 28px; left: 24px;
-    color: var(--gold); text-decoration: none; font-family: var(--sans);
-    font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; }
-  .home-link:hover { color: var(--gold-b); }
 
-  main { max-width: 880px; margin: 0 auto; padding: 24px; }
+  .scholar-intro {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 44px 28px 20px;
+    text-align: center;
+    position: relative;
+  }
+  .scholar-intro h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    font-size: clamp(28px, 4vw, 44px);
+    margin: 0 0 6px;
+    color: var(--gold-bright);
+    text-shadow: 0 0 40px rgba(212, 169, 74, 0.25);
+  }
+  .scholar-intro .lede {
+    max-width: 680px;
+    margin: 0 auto;
+    color: var(--ink-dim);
+    font-size: 15px;
+    font-style: italic;
+  }
+  .home-link {
+    position: absolute; top: 48px; left: 24px;
+    color: var(--gold); text-decoration: none;
+    font-family: var(--sans); font-size: 11px;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    transition: color 120ms ease;
+  }
+  .home-link:hover { color: var(--gold-bright); }
 
-  .ask-row { display: flex; gap: 10px; margin-bottom: 22px; }
-  .ask-row input { flex: 1; padding: 12px 16px; border-radius: 6px;
-    background: var(--bg-2); border: 1px solid var(--rule); color: var(--ink);
-    font-family: var(--serif); font-size: 17px; }
-  .ask-row input:focus { outline: 0; border-color: var(--gold); }
-  button.primary { background: var(--gold); color: #1a1a0a; border: 0;
-    padding: 12px 22px; font-family: var(--sans); font-size: 12px;
-    letter-spacing: 0.22em; text-transform: uppercase; border-radius: 4px;
-    cursor: pointer; font-weight: 600; }
-  button.primary:hover:not([disabled]) { background: var(--gold-b); }
-  button.primary[disabled] { opacity: 0.55; cursor: not-allowed; }
+  main.scholar {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 8px 28px 40px;
+  }
 
-  .model-card { background: var(--bg-2); border: 1px solid var(--rule);
-    padding: 14px 18px; border-radius: 8px; margin-bottom: 20px;
-    display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--dim);
-    flex-wrap: wrap; }
-  .model-card .dot { width: 10px; height: 10px; border-radius: 50%;
-    background: var(--rule); flex-shrink: 0; }
-  .model-card.loaded .dot { background: #5fae5f; }
-  .model-card button { margin-left: auto; background: transparent;
-    border: 1px solid var(--rule); color: var(--gold); padding: 6px 12px;
-    border-radius: 4px; cursor: pointer; font-family: var(--sans); font-size: 11px;
-    letter-spacing: 0.2em; text-transform: uppercase; }
-  .model-card button:hover { border-color: var(--gold); color: var(--gold-b); }
-  .progress { height: 4px; background: var(--rule); border-radius: 2px;
-    margin-top: 10px; overflow: hidden; flex-basis: 100%; display: none; }
+  /* Ask bar — framed like the book panel */
+  .ask-row {
+    display: flex; gap: 12px; margin-bottom: 22px;
+    background: var(--bg-2);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 10px 10px 10px 16px;
+    position: relative;
+  }
+  .ask-row::before {
+    content: "";
+    position: absolute;
+    left: 6px; top: 6px; right: 6px; bottom: 6px;
+    border: 1px solid rgba(212, 169, 74, 0.14);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .ask-row input {
+    flex: 1;
+    padding: 12px 14px;
+    background: transparent;
+    border: 0;
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 18px;
+    outline: none;
+    position: relative; z-index: 1;
+  }
+  .ask-row input::placeholder { color: var(--ink-dim); font-style: italic; }
+  button.primary {
+    background: var(--gold);
+    color: #1a1a0a;
+    border: 0;
+    padding: 10px 22px;
+    font-family: var(--sans); font-size: 11px;
+    letter-spacing: 0.26em; text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 120ms ease;
+    position: relative; z-index: 1;
+  }
+  button.primary:hover:not([disabled]) { background: var(--gold-bright); }
+  button.primary[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+  /* Status line (italic, like the main lede) */
+  .status {
+    color: var(--ink-dim);
+    font-size: 13px;
+    margin: 10px 4px 18px;
+    font-style: italic;
+    font-family: var(--serif);
+  }
+  .status:empty { display: none; }
+
+  /* Model-load card — same chrome as matryoshka layers */
+  .model-card {
+    background: rgba(212, 169, 74, 0.025);
+    border: 1px dashed rgba(212, 169, 74, 0.22);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 22px;
+    display: flex; align-items: center; gap: 14px;
+    font-size: 13px; color: var(--ink-dim);
+    flex-wrap: wrap;
+    font-family: var(--serif);
+  }
+  .model-card .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--rule); flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(212, 169, 74, 0.25);
+  }
+  .model-card.loaded .dot {
+    background: #9dcf7d;
+    box-shadow: 0 0 0 1px #5fae5f, 0 0 8px rgba(157, 207, 125, 0.4);
+  }
+  .model-card button#load-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid rgba(212, 169, 74, 0.4);
+    color: var(--gold);
+    padding: 7px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    transition: all 120ms ease;
+  }
+  .model-card button#load-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold-bright);
+    background: rgba(212, 169, 74, 0.1);
+  }
+  .progress {
+    height: 4px;
+    background: var(--rule);
+    border-radius: 2px;
+    margin-top: 10px;
+    overflow: hidden;
+    flex-basis: 100%;
+    display: none;
+  }
   .progress.visible { display: block; }
-  .progress-bar { height: 100%; background: var(--gold); width: 0%; transition: width 200ms; }
+  .progress-bar {
+    height: 100%;
+    background: var(--gold);
+    width: 0%;
+    transition: width 200ms;
+  }
 
-  .answer { background: var(--bg-2); border: 1px solid var(--rule);
-    border-left: 2px solid var(--gold); padding: 18px 22px; border-radius: 6px;
-    margin: 16px 0; line-height: 1.6; white-space: pre-wrap; }
+  /* Grounded answer — the headline gold-left-bar block, matches the
+     main app's .modern / quote style */
+  .answer {
+    background: rgba(212, 169, 74, 0.10);
+    border: 1px solid rgba(212, 169, 74, 0.35);
+    border-left: 3px solid var(--gold);
+    padding: 18px 22px;
+    border-radius: 6px;
+    margin: 16px 0 22px;
+    line-height: 1.65;
+    box-shadow: 0 0 24px rgba(212, 169, 74, 0.08);
+  }
   .answer:empty { display: none; }
   .answer .src {
-    font-family: var(--sans); font-size: 10px; letter-spacing: 0.28em;
-    text-transform: uppercase; color: var(--gold); margin-bottom: 10px; }
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .answer .answer-body {
+    color: var(--ink);
+    font-size: 16px;
+    font-family: var(--serif);
+    white-space: pre-wrap;
+  }
 
-  .retrieved { margin-top: 6px; }
+  /* Retrieved passages — nested matryoshka-style frames */
+  .retrieved {
+    margin-top: 6px;
+  }
   .retrieved .label {
-    font-family: var(--sans); font-size: 10px; letter-spacing: 0.28em;
-    text-transform: uppercase; color: var(--gold); margin: 8px 0 10px; }
-  .hit { background: var(--bg-2); border: 1px solid var(--rule);
-    border-radius: 6px; padding: 14px 18px; margin-bottom: 10px; }
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 18px 0 12px;
+  }
+  .hit {
+    background: rgba(212, 169, 74, 0.02);
+    border: 1px dashed rgba(212, 169, 74, 0.22);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    transition: border-color 120ms ease;
+  }
+  .hit:hover {
+    border-color: rgba(212, 169, 74, 0.4);
+  }
   .hit .hit-head {
-    display: flex; justify-content: space-between; align-items: baseline;
-    margin-bottom: 6px; font-family: var(--sans); font-size: 11px;
-    letter-spacing: 0.18em; text-transform: uppercase; }
-  .hit .hit-source { color: var(--gold); }
-  .hit .hit-page   { color: var(--dim); }
-  .hit .hit-body { color: var(--ink); font-size: 15px; line-height: 1.55; }
-  .hit .hit-title { font-family: var(--serif); font-weight: 500; color: var(--ink);
-    font-size: 16px; margin-bottom: 6px; }
+    display: flex; align-items: baseline; gap: 12px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed rgba(212, 169, 74, 0.18);
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .hit .hit-source { color: var(--gold); flex: 1; }
+  .hit .hit-page { color: var(--ink-dim); letter-spacing: 0.18em; }
+  .hit .hit-title {
+    font-family: var(--serif);
+    font-weight: 500;
+    color: var(--ink);
+    font-size: 18px;
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
+  }
+  .hit .hit-body {
+    color: var(--ink-dim);
+    font-size: 15px;
+    line-height: 1.65;
+    font-family: var(--serif);
+  }
 
-  .status { color: var(--dim); font-size: 13px; margin: 12px 0; font-style: italic; }
-  footer { max-width: 880px; margin: 40px auto 20px; padding: 0 24px;
-    font-family: var(--sans); font-size: 10px; letter-spacing: 0.22em;
-    text-transform: uppercase; color: var(--dim); text-align: center; }
+  /* Clickable page references — same treatment as the main app */
+  button.page-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    color: var(--gold);
+    font: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+    border-bottom: 1px dotted currentColor;
+    transition: color 120ms ease;
+  }
+  button.page-link:hover {
+    color: var(--gold-bright);
+    border-bottom-style: solid;
+  }
+  .hit-page button.page-link {
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+  }
 
-  .loading-spinner { display: inline-block; width: 10px; height: 10px;
-    border: 2px solid var(--rule); border-top-color: var(--gold);
-    border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px; }
+  /* Inline page reader — nested layer-2-style frame */
+  .hit-page-inline:not([hidden]),
+  #answer-page-inline:not([hidden]) {
+    margin-top: 12px;
+  }
+  .inline-page {
+    background: rgba(212, 169, 74, 0.04);
+    border: 1px dashed rgba(212, 169, 74, 0.3);
+    border-left: 2px solid var(--gold);
+    border-radius: 4px;
+    padding: 20px 24px 24px;
+    animation: fade 280ms ease;
+  }
+  .inline-page-head {
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed rgba(212, 169, 74, 0.2);
+  }
+  .inline-page-body {
+    font-family: var(--serif);
+    font-size: 15.5px;
+    line-height: 1.72;
+    color: var(--ink);
+    white-space: pre-wrap;
+  }
+
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .scholar-foot {
+    max-width: 900px;
+    margin: 32px auto 50px;
+    padding: 24px 28px 0;
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold);
+    text-align: center;
+    border-top: 1px solid var(--rule);
+  }
+
+  .loading-spinner {
+    display: inline-block; width: 10px; height: 10px;
+    border: 2px solid var(--rule);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 700px) {
+    .home-link { top: 20px; }
+    main.scholar { padding: 8px 16px 30px; }
+    .ask-row { padding: 8px; }
+    .ask-row input { font-size: 16px; padding: 10px 12px; }
+    button.primary { padding: 10px 14px; font-size: 10px; letter-spacing: 0.2em; }
+  }
 </style>
 </head>
 <body>
 
-<header>
+<header class="scholar-intro">
   <a class="home-link" href="/">← back to the wheel</a>
-  <h1>Samsara Scholar<small>L5 prototype · in-browser search and Q&amp;A</small></h1>
+  <h1>Samsara Scholar</h1>
+  <p class="lede">
+    Ask The Tibetan Book of the Dead directly. Every answer is grounded
+    in the book — click any page reference to open it in context.
+  </p>
 </header>
 
-<main>
+<main class="scholar">
 
   <div class="ask-row">
-    <input id="q" placeholder="Ask the book — e.g. 'Who is the sage of the hell realms?'"
+    <input id="q" placeholder="Ask the book — e.g. "
            autocomplete="off" />
     <button class="primary" id="ask">Ask</button>
   </div>
 
   <div class="model-card" id="model-card">
     <span class="dot"></span>
-    <span id="model-status">Search-only mode. Load the scholar to get grounded answers.</span>
+    <span id="model-status">Search-only mode. Load the fine-tuned scholar (~1.8 GB, from Hugging Face, runs in your browser via WebGPU) for grounded answers.</span>
     <button id="load-btn">Load scholar</button>
     <div class="progress" id="progress"><div class="progress-bar" id="progress-bar"></div></div>
   </div>
@@ -118,7 +367,7 @@
 
 </main>
 
-<footer>Samsara · a modern wheel of life · experimental</footer>
+<footer class="scholar-foot">See the cycle. Know its nature. Let go.</footer>
 
 <script type="module">
 const STATUS = document.getElementById("status");
@@ -211,21 +460,66 @@ const retrievedEl = document.getElementById("retrieved");
 function escapeHTML(s) {
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+// Wrap any "p. N" / "pp. N–M" reference in a clickable button that
+// expands the full page text inline when clicked.
+function linkifyPageRefs(s) {
+  return escapeHTML(s).replace(
+    /\b(pp?\.\s*(\d+)(?:\s*[–-]\s*(\d+))?)/g,
+    (m, _lbl, n) => `<button class="page-link" data-page="${n}">${m}</button>`
+  );
+}
 function renderRetrieved(hits) {
   retrievedEl.innerHTML = `
     <div class="label">Retrieved · ${hits.length} passage${hits.length !== 1 ? "s" : ""}</div>
-    ${hits.map(h => `
-      <div class="hit">
-        <div class="hit-head">
-          <span class="hit-source">${h.source}</span>
-          <span class="hit-page">${h.page}</span>
+    ${hits.map((h, i) => {
+      // Pull a page number out of "p. 279" style strings.
+      const pageNum = (h.page.match(/\d+/) || [])[0];
+      const pageBtn = pageNum
+        ? `<button class="page-link" data-page="${pageNum}">${escapeHTML(h.page)}</button>`
+        : escapeHTML(h.page);
+      return `
+        <div class="hit" data-hit="${i}">
+          <div class="hit-head">
+            <span class="hit-source">${h.source}</span>
+            <span class="hit-page">${pageBtn}</span>
+          </div>
+          <div class="hit-title">${escapeHTML(h.title)}</div>
+          <div class="hit-body">${linkifyPageRefs(h.full.slice(0, 800))}${h.full.length > 800 ? "…" : ""}</div>
+          <div class="hit-page-inline" hidden></div>
         </div>
-        <div class="hit-title">${escapeHTML(h.title)}</div>
-        <div class="hit-body">${escapeHTML(h.full.slice(0, 800))}${h.full.length > 800 ? "…" : ""}</div>
-      </div>
-    `).join("")}
+      `;
+    }).join("")}
   `;
 }
+
+// Delegated click handler for page-link buttons (in hits and in the answer).
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".page-link");
+  if (!btn) return;
+  e.stopPropagation();
+  const n = btn.dataset.page;
+  const pageText = book[n];
+  if (!pageText) {
+    console.warn("page not found:", n);
+    return;
+  }
+  // Find or create an inline page container near the click target.
+  const host = btn.closest(".hit")
+    ? btn.closest(".hit").querySelector(".hit-page-inline")
+    : document.getElementById("answer-page-inline");
+  if (!host) return;
+  if (!host.hidden && host.dataset.page === n) {
+    host.hidden = true; host.innerHTML = ""; return;
+  }
+  host.dataset.page = n;
+  host.hidden = false;
+  host.innerHTML = `
+    <div class="inline-page">
+      <div class="inline-page-head">p. ${escapeHTML(n)}</div>
+      <div class="inline-page-body">${linkifyPageRefs(pageText)}</div>
+    </div>`;
+  host.scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
 
 let pipe = null;
 
@@ -252,7 +546,10 @@ async function ask() {
     try {
       const result = await pipe(messages, { max_new_tokens: 240, do_sample: false });
       const text = result[0].generated_text.at(-1).content;
-      answerEl.innerHTML = `<div class="src">Grounded answer</div>${escapeHTML(text)}`;
+      answerEl.innerHTML =
+        `<div class="src">Grounded answer</div>` +
+        `<div class="answer-body">${linkifyPageRefs(text)}</div>` +
+        `<div id="answer-page-inline" hidden></div>`;
       setStatus("");
     } catch (e) {
       setStatus("Generation failed: " + e.message);
@@ -266,7 +563,14 @@ async function ask() {
 askBtn.onclick = ask;
 qEl.addEventListener("keydown", e => { if (e.key === "Enter") ask(); });
 
-const MODEL_ID = "thealch3m1st/samsara-qwen1.5b";
+// Toggle: ?spark=1 → load model directly from the Spark (LAN testing, no HF Hub needed)
+// Toggle: ?host=http://… → load from an arbitrary host (same structure)
+// Default → HF Hub once the model is pushed.
+const params = new URLSearchParams(location.search);
+const SPARK_HOST = params.get("host") || "http://192.168.1.85:8080";
+const USE_SPARK = params.has("spark") || params.has("host");
+const MODEL_ID = USE_SPARK ? "hf_repo" : "catalyst404/samsara-qwen1.5b";
+
 const loadBtn = document.getElementById("load-btn");
 const modelCard = document.getElementById("model-card");
 const modelStatus = document.getElementById("model-status");
@@ -276,12 +580,23 @@ const progressBar = document.getElementById("progress-bar");
 loadBtn.onclick = async () => {
   loadBtn.disabled = true;
   loadBtn.innerHTML = `<span class="loading-spinner"></span>Loading…`;
-  modelStatus.textContent = "Loading Transformers.js…";
+  modelStatus.textContent = USE_SPARK
+    ? "Loading Transformers.js… (will fetch from Spark)"
+    : "Loading Transformers.js…";
   progressEl.classList.add("visible");
 
   try {
     const { pipeline, env } = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3/dist/transformers.min.js");
-    env.allowLocalModels = false;
+
+    if (USE_SPARK) {
+      // Point Transformers.js at a plain HTTP server serving the hf_repo tree.
+      env.remoteHost = SPARK_HOST;
+      env.remotePathTemplate = "{model}";
+      env.allowRemoteModels = true;
+      env.allowLocalModels = false;
+    } else {
+      env.allowLocalModels = false;
+    }
 
     pipe = await pipeline("text-generation", MODEL_ID, {
       dtype: "q8", device: "webgpu",
@@ -299,7 +614,8 @@ loadBtn.onclick = async () => {
     loadBtn.style.display = "none";
     progressEl.classList.remove("visible");
   } catch (e) {
-    modelStatus.textContent = "Model not yet hosted on HF Hub — retrieval still works. Push via push_to_hub.sh on the Spark.";
+    console.error("Scholar load failed:", e);
+    modelStatus.textContent = `Load failed: ${e.message}. Retrieval still works without the model.`;
     loadBtn.disabled = false;
     loadBtn.textContent = "Retry";
   }

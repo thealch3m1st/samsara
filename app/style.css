@@ -615,6 +615,165 @@ button.term:focus-visible {
   border-color: var(--gold-b);
 }
 
+/* ---------- L4: full-book reader panel ---------- */
+
+#reader {
+  height: calc(100vh - 40px);
+  max-height: 900px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.reader-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 16px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 14px;
+}
+.reader-title .eyebrow {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.reader-title h2 {
+  margin: 2px 0 4px;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 26px;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.reader-title .subtitle {
+  font-style: italic;
+  color: var(--gold-b);
+  font-size: 13px;
+  font-family: var(--serif);
+  letter-spacing: 0.03em;
+}
+#reader-close {
+  background: none;
+  border: 1px solid var(--rule);
+  color: var(--ink-dim);
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+#reader-close:hover {
+  color: var(--gold-b);
+  border-color: var(--gold);
+  background: rgba(212, 169, 74, 0.1);
+}
+
+#reader-pages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 8px 40px 2px;
+  scroll-behavior: smooth;
+}
+#reader-pages::-webkit-scrollbar { width: 8px; }
+#reader-pages::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 4px; }
+
+.reader-page {
+  margin-bottom: 32px;
+}
+.reader-page-num {
+  display: block;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding: 14px 0 12px;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, var(--bg-2) 60%, transparent 100%);
+  z-index: 2;
+}
+.reader-page-body {
+  font-family: var(--serif);
+  font-size: 15.5px;
+  line-height: 1.72;
+  color: var(--ink);
+  transition: background 600ms ease;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.reader-page-body p {
+  margin: 0 0 12px;
+}
+.reader-page-body p:last-child { margin-bottom: 0; }
+.reader-page-body.flash-anchor {
+  background: rgba(241, 200, 102, 0.12);
+}
+
+/* Wheel highlight when reader is open */
+#overlay [data-key].is-relevant {
+  fill: rgba(241, 200, 102, 0.18) !important;
+  stroke: rgba(241, 200, 102, 0.9) !important;
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 0 14px rgba(241, 200, 102, 0.5));
+  animation: relevantPulse 2.4s ease-in-out infinite;
+}
+@keyframes relevantPulse {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(241, 200, 102, 0.35)); }
+  50%      { filter: drop-shadow(0 0 18px rgba(241, 200, 102, 0.65)); }
+}
+
+.open-reader {
+  background: rgba(212, 169, 74, 0.18);
+  border: 1px solid var(--gold);
+  color: var(--gold-b);
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  transition: all 120ms ease;
+}
+.open-reader:hover {
+  background: rgba(241, 200, 102, 0.3);
+  color: #fff2c9;
+}
+
+.page-ref { cursor: pointer; }
+
+/* Any "p. 279" or "pp. 19–20" page reference, anywhere it appears */
+button.page-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  border-bottom: 1px dotted currentColor;
+  transition: color 120ms ease;
+}
+button.page-link:hover {
+  color: var(--gold-b);
+  border-bottom-style: solid;
+}
+
 /* ---------- responsive ---------- */
 @media (max-width: 960px) {
   .layout {
@@ -626,5 +785,8 @@ button.term:focus-visible {
   #popover {
     width: calc(100vw - 20px);
     left: 10px !important;
+  }
+  #reader {
+    height: 70vh;
   }
 }

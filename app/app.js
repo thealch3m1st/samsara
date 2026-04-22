@@ -95,6 +95,17 @@
     }[c]));
   }
 
+  // Wrap any "p. N", "pp. N–M", "Chapter 4, p. 59" page reference in
+  // a clickable span so it can open the reader at that page.
+  function linkifyPageRefs(s){
+    // Match "p. 279" or "pp. 19–20" / "pp. 19-20"
+    return escapeHTML(s).replace(
+      /\b(pp?\.\s*(\d+)(?:\s*[–-]\s*(\d+))?)/g,
+      (full, _label, n) =>
+        `<button class="page-link" data-page="${n}">${full}</button>`
+    );
+  }
+
   function markUpTerms(text, skipKey){
     let html = escapeHTML(text);
     const seen = new Set();
@@ -209,7 +220,7 @@
       </div>
       <p class="pop-short">${escapeHTML(g.short || "")}</p>
       <div class="pop-body">${bodyHTML}</div>
-      ${g.page ? `<div class="pop-page">From the book · ${escapeHTML(g.page)}</div>` : ""}
+      ${g.page ? `<div class="pop-page">From the book · ${linkifyPageRefs(g.page)}</div>` : ""}
       ${goToChip}
       ${seeHTML ? `<div class="pop-see"><span class="eyebrow">See also</span>${seeHTML}</div>` : ""}
     `;
@@ -269,7 +280,75 @@
     { name: "Surrounding paragraph", desc: "the sentences around it" },
     { name: "Same page",             desc: "more of what the book is saying here" },
     { name: "Chapter context",       desc: "the wider passage in the book" },
+    { name: "The whole book",        desc: "read continuously, with the wheel lit up by what you read" },
   ];
+
+  // ------------------------------------------------------------------
+  // Term → wheel-section mapping. Drives the live highlighting in L4.
+  // ------------------------------------------------------------------
+
+  // Surface-form → wheel-section. Much wider than canonical glossary
+  // keys, so the reader lights up the wheel on everyday book phrasing
+  // ("anguished spirits", "god realms", "antigods", etc).
+  const SURFACE_SECTIONS = {
+    // six realms — many surface forms
+    "god realm": ["deva"],  "god realms": ["deva"],  "god-realms": ["deva"],
+    "realm of the gods": ["deva"], "deva": ["deva"], "pride": ["deva"],
+    "Sakra": ["deva"], "Indraśakra": ["deva"],
+
+    "antigod": ["asura"], "antigods": ["asura"], "antigod realm": ["asura"],
+    "antigod realms": ["asura"], "realm of the antigods": ["asura"],
+    "asura": ["asura"], "envy": ["asura"], "Vemacitra": ["asura"],
+
+    "human realm": ["human"], "human realms": ["human"], "human beings": ["human"],
+    "attachment": ["human"], "Sākyamuni": ["human"], "Sakyamuni": ["human"],
+    "Śākyamuni": ["human"], "Śākyasiṃha": ["human"],
+
+    "animal realm": ["animal"], "animal realms": ["animal"], "animal-realms": ["animal"],
+    "animals": ["animal"], "delusion": ["animal", "delusion"],
+    "Sthirasiṃha": ["animal"],
+
+    "anguished spirit": ["ghost"], "anguished spirits": ["ghost"],
+    "anguished-spirit": ["ghost"], "anguished-spirit realms": ["ghost"],
+    "hungry ghost": ["ghost"], "preta": ["ghost"],
+    "miserliness": ["ghost"], "Jvālamukha": ["ghost"],
+
+    "hell realm": ["hell"], "hell realms": ["hell"], "hells": ["hell"],
+    "hell-being": ["hell"], "hell-beings": ["hell"], "hell beings": ["hell"],
+    "naraka": ["hell"], "aversion": ["hell", "aversion"],
+    "hatred": ["hell", "aversion"],
+
+    // three poisons (hub)
+    "three poisons": ["greed", "aversion", "delusion"],
+    "five poisons": ["greed", "aversion", "delusion", "deva", "asura"],
+    "attachment and aversion": ["greed", "aversion"],
+    "desire": ["greed"], "craving": ["greed", "ghost"],
+
+    // ring / dependent origination
+    "cyclic existence": ["outer"], "samsāra": ["outer"], "saṃsāra": ["outer"],
+    "dependent origination": ["outer"], "twelve links": ["outer"],
+    "karma": ["outer", "yama"], "past actions": ["outer", "yama"],
+
+    // yama
+    "Yama": ["yama"], "Yama Dharmarāja": ["yama", "hell"],
+    "Lord of Death": ["yama"], "Dharmarāja": ["yama"],
+    "impermanence": ["yama"], "bhavacakra": ["yama", "outer"],
+
+    // buddha / compassion / liberation
+    "Mahākāruṇika": ["buddha"], "Avalokiteśvara": ["buddha"],
+    "compassion": ["buddha"], "great compassion": ["buddha"],
+    "Vajrasattva": ["buddha"], "refuge": ["buddha"],
+    "pristine cognition": ["buddha", "moon"],
+    "buddha-body": ["buddha"], "buddhahood": ["buddha"],
+
+    // moon / liberation
+    "nirvāṇa": ["moon"], "liberation": ["moon"], "illusion": ["moon"],
+
+    // center poisons
+    "fundamental ignorance": ["delusion"],
+    "ignorance": ["delusion"],
+    "dissonant mental states": ["greed", "aversion", "delusion"],
+  };
 
   // Build the HTML for a matryoshka layer at a given depth.
   // 0 = innermost (the quote itself). 1..3 = wrapping layers.
@@ -281,7 +360,7 @@
         <div class="layer layer-0 is-quote" data-depth="0">
           <blockquote class="quote">${quoteHTML}</blockquote>
           <div class="layer-foot">
-            <span class="page-ref">${escapeHTML(pageLabel)}</span>
+            <span class="page-ref">${linkifyPageRefs(pageLabel)}</span>
             ${isOutermost && ctx ? `
               <button class="zoom-out" data-target="1">
                 <span class="zoom-icon">⌖</span>
@@ -303,7 +382,7 @@
       <div class="layer layer-${depth}" data-depth="${depth}">
         <div class="layer-head">
           <span class="layer-name">${escapeHTML(label.name)}</span>
-          <span class="layer-range">${pageRange}</span>
+          <span class="layer-range">${linkifyPageRefs(pageRange)}</span>
           <button class="zoom-in" data-target="${depth - 1}" aria-label="Close this layer">×</button>
         </div>
         ${before ? `<p class="context-before">${before}</p>` : ""}
@@ -316,7 +395,10 @@
                      <span class="zoom-icon">⌖</span>
                      Zoom out to ${escapeHTML(nextLabel || "next layer")}
                    </button>`
-                : `<span class="layer-end">You’re reading the book now.</span>`)
+                : `<button class="open-reader" data-page="${L.startPage || ctx.page}" data-anchor="${escapeHTML(ctx.anchor || "")}">
+                     <span class="zoom-icon">⌖</span>
+                     Open the whole book
+                   </button>`)
             : ""}
         </div>
       </div>
@@ -392,7 +474,7 @@
           </dl>
         ` : ""}
 
-        <div class="book-title">From the book · ${escapeHTML(d.page || "")}</div>
+        <div class="book-title">From the book · ${linkifyPageRefs(d.page || "")}</div>
         <h3>${escapeHTML(d.bookTitle || "")}</h3>
 
         ${d.passages.map(passageHTML).join("")}
@@ -436,4 +518,155 @@
   });
 
   render("caption");
+
+  // ------------------------------------------------------------------
+  // L4 — the full-book reader with live wheel highlighting
+  // ------------------------------------------------------------------
+
+  const reader        = document.getElementById("reader");
+  const readerPages   = document.getElementById("reader-pages");
+  const readerClose   = document.getElementById("reader-close");
+  const readerSubtitle= document.getElementById("reader-subtitle");
+  const bookInner     = document.getElementById("book-inner");
+
+  let bookData = null;
+  let pageObserver = null;
+  let visiblePages = new Set();
+
+  async function ensureBook(){
+    if (bookData) return bookData;
+    bookData = await fetch("book.json").then(r => r.json());
+    return bookData;
+  }
+
+  async function openReader(startPage, anchor){
+    await ensureBook();
+
+    const pageNumbers = Object.keys(bookData).map(n => +n).sort((a,b) => a - b);
+    readerPages.innerHTML = pageNumbers.map(n => {
+      const body = bookData[n];
+      const paragraphs = body.split(/\n\s*\n+/)
+        .map(p => `<p>${markUpTerms(p.trim())}</p>`)
+        .join("");
+      return `
+        <section class="reader-page" data-page="${n}">
+          <div class="reader-page-num">— p. ${n} —</div>
+          <div class="reader-page-body">${paragraphs}</div>
+        </section>
+      `;
+    }).join("");
+
+    bookInner.hidden = true;
+    reader.hidden = false;
+
+    // Scroll to starting page. If the anchor phrase lives within the
+    // page, scroll so that anchor text is visible; otherwise page top.
+    requestAnimationFrame(() => {
+      const target = reader.querySelector(`.reader-page[data-page="${startPage}"]`);
+      if (target) target.scrollIntoView({ behavior: "auto", block: "start" });
+      if (anchor){
+        // find first term mention inside the target page; highlight briefly
+        const span = target?.querySelector(".reader-page-body");
+        if (span){
+          span.classList.add("flash-anchor");
+          setTimeout(() => span.classList.remove("flash-anchor"), 1800);
+        }
+      }
+    });
+
+    // Observe all pages to know which are visible. As the user scrolls,
+    // light up any wheel section whose terms appear on visible pages.
+    if (pageObserver) pageObserver.disconnect();
+    visiblePages = new Set();
+    pageObserver = new IntersectionObserver((entries) => {
+      for (const e of entries){
+        const n = +e.target.dataset.page;
+        if (e.isIntersecting) visiblePages.add(n);
+        else visiblePages.delete(n);
+      }
+      updateWheelHighlight();
+    }, { root: reader, threshold: 0.3 });
+    reader.querySelectorAll(".reader-page").forEach(el => pageObserver.observe(el));
+  }
+
+  function closeReader(){
+    reader.hidden = true;
+    bookInner.hidden = false;
+    if (pageObserver) { pageObserver.disconnect(); pageObserver = null; }
+    // Clear wheel highlights
+    overlay.querySelectorAll("[data-key]").forEach(el =>
+      el.classList.remove("is-relevant")
+    );
+    readerSubtitle.textContent = "as the wheel lights up around what you are reading";
+  }
+
+  // Given the pages currently in view, mark matching wheel sections.
+  // We scan the page text case-insensitively for each surface form and
+  // union the sections they map to.
+  function updateWheelHighlight(){
+    if (!bookData) return;
+    const pages = [...visiblePages].sort((a,b)=>a-b);
+    if (!pages.length) return;
+    const text = pages.map(n => bookData[n] || "").join(" ").toLowerCase();
+
+    const sections = new Set();
+    for (const [form, targets] of Object.entries(SURFACE_SECTIONS)){
+      if (text.indexOf(form.toLowerCase()) !== -1){
+        targets.forEach(s => sections.add(s));
+      }
+    }
+    overlay.querySelectorAll("[data-key]").forEach(el =>
+      el.classList.toggle("is-relevant", sections.has(el.dataset.key))
+    );
+    const first = pages[0], last = pages[pages.length - 1];
+    readerSubtitle.textContent =
+      first === last ? `p. ${first}` : `pp. ${first}–${last}`;
+  }
+
+  // Open reader on "Open the whole book" button. Also handle page-ref
+  // clicks (from matryoshka headers, quote foot, popover footer) and
+  // wedge-clicks while reader is open.
+  book.addEventListener("click", (e) => {
+    const openBtn = e.target.closest(".open-reader");
+    if (openBtn){
+      e.stopPropagation();
+      openReader(+openBtn.dataset.page || 100, openBtn.dataset.anchor || null);
+    }
+  });
+  readerClose.addEventListener("click", closeReader);
+
+  // Clicking any wheel section while the reader is open jumps to the
+  // first page that mentions that section's defining term. Keeps the
+  // section-click discoverable without duplicating UI.
+  overlay.addEventListener("click", (e) => {
+    if (reader.hidden) return;
+    const key = e.target.closest("[data-key]")?.dataset.key;
+    if (!key) return;
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    // Find first page that mentions a defining term for this section.
+    const defining = Object.entries(TERM_SECTIONS)
+      .filter(([, sections]) => sections.includes(key))
+      .map(([t]) => t);
+    if (!defining.length || !bookData) return;
+    const pages = Object.keys(bookData).map(n => +n).sort((a,b)=>a-b);
+    for (const p of pages){
+      const text = bookData[p] || "";
+      if (defining.some(t => text.includes(t))){
+        const target = reader.querySelector(`.reader-page[data-page="${p}"]`);
+        target?.scrollIntoView({ behavior: "smooth", block: "start" });
+        break;
+      }
+    }
+  }, true); // capture phase so we run before the normal render() handler
+
+  // Clickable page numbers anywhere (matryoshka, section meta, popover)
+  document.addEventListener("click", (e) => {
+    const pl = e.target.closest(".page-link");
+    if (!pl) return;
+    e.stopPropagation();
+    const n = parseInt(pl.dataset.page, 10);
+    if (n) openReader(n);
+  }, true);
+
 })();

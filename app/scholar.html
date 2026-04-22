@@ -570,6 +570,9 @@ const params = new URLSearchParams(location.search);
 const SPARK_HOST = params.get("host") || "http://192.168.1.85:8080";
 const USE_SPARK = params.has("spark") || params.has("host");
 const MODEL_ID = USE_SPARK ? "hf_repo" : "catalyst404/samsara-qwen1.5b";
+// ?device=wasm → run int8 on CPU (slower but numerically faithful).
+// ?device=webgpu (default) → faster but some q8 ops may produce gibberish on WebGPU.
+const DEVICE = params.get("device") || "webgpu";
 
 const loadBtn = document.getElementById("load-btn");
 const modelCard = document.getElementById("model-card");
@@ -599,7 +602,7 @@ loadBtn.onclick = async () => {
     }
 
     pipe = await pipeline("text-generation", MODEL_ID, {
-      dtype: "q8", device: "webgpu",
+      dtype: "q8", device: DEVICE,
       progress_callback: (ev) => {
         if (ev.status === "progress" && ev.loaded && ev.total) {
           const pct = Math.round(100 * ev.loaded / ev.total);
@@ -626,7 +629,7 @@ loadBtn.onclick = async () => {
     }
 
     modelCard.classList.add("loaded");
-    modelStatus.textContent = "Samsara scholar loaded — answers will be grounded in retrieved passages.";
+    modelStatus.textContent = `Samsara scholar loaded on ${DEVICE} — answers will be grounded in retrieved passages.`;
     loadBtn.style.display = "none";
     progressEl.classList.remove("visible");
   } catch (e) {

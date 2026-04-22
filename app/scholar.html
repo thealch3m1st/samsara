@@ -609,6 +609,22 @@ loadBtn.onclick = async () => {
       },
     });
 
+    // The Qwen chat template lives in a separate chat_template.jinja file in the repo;
+    // Transformers.js only reads `chat_template` inlined in tokenizer_config.json.
+    // Fetch it explicitly and attach it so apply_chat_template() works. Cache-busted so
+    // we can update the template without forcing users to re-download the 1.8 GB model.
+    if (!pipe.tokenizer.chat_template) {
+      try {
+        const base = USE_SPARK
+          ? `${SPARK_HOST}/${MODEL_ID}`
+          : `https://huggingface.co/${MODEL_ID}/resolve/main`;
+        const tmpl = await fetch(`${base}/chat_template.jinja?cb=${Date.now()}`).then(r => r.text());
+        pipe.tokenizer.chat_template = tmpl;
+      } catch (e) {
+        console.warn("Could not fetch chat_template.jinja:", e);
+      }
+    }
+
     modelCard.classList.add("loaded");
     modelStatus.textContent = "Samsara scholar loaded — answers will be grounded in retrieved passages.";
     loadBtn.style.display = "none";

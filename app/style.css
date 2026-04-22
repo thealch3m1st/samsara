@@ -285,6 +285,18 @@ a { color: var(--gold-bright); }
   font-size: 12px;
   text-transform: uppercase;
 }
+.foot-link {
+  display: block;
+  margin-top: 14px;
+  color: var(--ink-dim);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+.foot-link:hover {
+  color: var(--gold-b);
+}
 
 /* ---------- inline term pills ---------- */
 

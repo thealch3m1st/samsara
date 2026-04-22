@@ -2,6 +2,15 @@
 
 **Live:** https://thealch3m1st.github.io/samsara/
 
+> ⚠️ **Experimental · heavily WIP.** Nothing here is finished. Expect
+> rough edges, broken hotspots, half-wired features, and opinions about
+> the design changing from one commit to the next. Feedback welcome,
+> pull requests are at your own risk of being outpaced by the next
+> rewrite.
+
+The wheel artwork is by **[@nickcammarata](https://x.com/nickcammarata) on X**,
+reproduced here with appreciation. Everything below builds on his image.
+
 An interactive modern Wheel of Life, read through *The Tibetan Book of the
 Dead* (trans. Gyurme Dorje & Graham Coleman, Penguin Classics Deluxe
 Edition).
@@ -45,9 +54,16 @@ claude
 
 The mask editor (`/editor.html`) is included for future hotspot tweaks.
 
+## Credits
+
+- Wheel artwork: **[@nickcammarata](https://x.com/nickcammarata)**.
+- Book text: *The Tibetan Book of the Dead*, translated by Gyurme
+  Dorje & Graham Coleman (Penguin Classics Deluxe Edition). Quoted
+  passages are reproduced for educational, non-commercial use.
+
 ## Source
 
-- `app/wheel.jpeg` — the wheel artwork (by the project author).
+- `app/wheel.jpeg` — the wheel artwork (by @nickcammarata, reproduced with appreciation).
 - `app/masks.json` — hand-drawn hotspot polygons.
 - `app/glossary.js` — 35 glossary entries curated from the book's own
   *Glossary of Key Terms*.

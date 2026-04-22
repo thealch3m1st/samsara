@@ -356,7 +356,7 @@
 
   <div class="model-card" id="model-card">
     <span class="dot"></span>
-    <span id="model-status">Search-only mode. Load the fine-tuned scholar (~1.8 GB, from Hugging Face, runs in your browser via WebGPU) for grounded answers.</span>
+    <span id="model-status">Search-only mode. Load the fine-tuned scholar (~0.9 GB via WebLLM, runs in your browser on WebGPU) for grounded answers.</span>
     <button id="load-btn">Load scholar</button>
     <div class="progress" id="progress"><div class="progress-bar" id="progress-bar"></div></div>
   </div>
@@ -521,7 +521,9 @@ document.addEventListener("click", (e) => {
   host.scrollIntoView({ behavior: "smooth", block: "nearest" });
 });
 
-let pipe = null;
+// WebLLM engine — the v8 Qwen2.5-1.5B fine-tune, quantized to q4f16_1,
+// running on WebGPU via MLC-LLM's pre-compiled Qwen2 model library.
+let engine = null;
 
 async function ask() {
   const q = qEl.value.trim();
@@ -534,7 +536,7 @@ async function ask() {
   const hits = retrieve(q, 4);
   renderRetrieved(hits);
 
-  if (pipe) {
+  if (engine) {
     setStatus("Generating grounded answer…");
     const context = hits.map(h => `[${h.source} · ${h.page}] ${h.title}\n${h.full.slice(0, 1200)}`).join("\n\n");
     const messages = [
@@ -543,13 +545,28 @@ async function ask() {
         "Answer ONLY from the passages below. If the passages don't answer the question, say so. Cite a page." },
       { role: "user", content: `PASSAGES:\n${context}\n\nQUESTION: ${q}` },
     ];
+    // Prepare the answer container so we can stream tokens in as they arrive.
+    answerEl.innerHTML =
+      `<div class="src">Grounded answer</div>` +
+      `<div class="answer-body" id="answer-body"></div>` +
+      `<div id="answer-page-inline" hidden></div>`;
+    const bodyEl = document.getElementById("answer-body");
+    let full = "";
     try {
-      const result = await pipe(messages, { max_new_tokens: 240, do_sample: false });
-      const text = result[0].generated_text.at(-1).content;
-      answerEl.innerHTML =
-        `<div class="src">Grounded answer</div>` +
-        `<div class="answer-body">${linkifyPageRefs(text)}</div>` +
-        `<div id="answer-page-inline" hidden></div>`;
+      const chunks = await engine.chat.completions.create({
+        messages,
+        temperature: 0.2,
+        max_tokens: 320,
+        stream: true,
+      });
+      for await (const chunk of chunks) {
+        const delta = chunk.choices[0]?.delta?.content || "";
+        if (delta) {
+          full += delta;
+          // Re-render with page linkification on each tick.
+          bodyEl.innerHTML = linkifyPageRefs(full);
+        }
+      }
       setStatus("");
     } catch (e) {
       setStatus("Generation failed: " + e.message);
@@ -563,16 +580,7 @@ async function ask() {
 askBtn.onclick = ask;
 qEl.addEventListener("keydown", e => { if (e.key === "Enter") ask(); });
 
-// Toggle: ?spark=1 → load model directly from the Spark (LAN testing, no HF Hub needed)
-// Toggle: ?host=http://… → load from an arbitrary host (same structure)
-// Default → HF Hub once the model is pushed.
 const params = new URLSearchParams(location.search);
-const SPARK_HOST = params.get("host") || "http://192.168.1.85:8080";
-const USE_SPARK = params.has("spark") || params.has("host");
-const MODEL_ID = USE_SPARK ? "hf_repo" : "catalyst404/samsara-qwen1.5b";
-// ?device=wasm → run int8 on CPU (slower but numerically faithful).
-// ?device=webgpu (default) → faster but some q8 ops may produce gibberish on WebGPU.
-const DEVICE = params.get("device") || "webgpu";
 
 const loadBtn = document.getElementById("load-btn");
 const modelCard = document.getElementById("model-card");
@@ -580,56 +588,41 @@ const modelStatus = document.getElementById("model-status");
 const progressEl = document.getElementById("progress");
 const progressBar = document.getElementById("progress-bar");
 
+// v8 fine-tuned Qwen2.5-1.5B-Instruct, quantized to q4f16_1, ~0.9 GB.
+// We ship our weights on HF and reuse MLC's pre-compiled Qwen2-1.5B WebGPU
+// model library (same architecture — no need to compile wasm ourselves).
+const WEBLLM_MODEL_ID = "samsara-qwen1.5b-v8";
+const WEBLLM_WEIGHTS_URL = "https://huggingface.co/catalyst404/samsara-qwen1.5b-MLC/resolve/main/";
+const WEBLLM_MODEL_LIB = "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/web-llm-models/v0_2_80/Qwen2-1.5B-Instruct-q4f16_1-ctx4k_cs1k-webgpu.wasm";
+
 loadBtn.onclick = async () => {
   loadBtn.disabled = true;
   loadBtn.innerHTML = `<span class="loading-spinner"></span>Loading…`;
-  modelStatus.textContent = USE_SPARK
-    ? "Loading Transformers.js… (will fetch from Spark)"
-    : "Loading Transformers.js…";
+  modelStatus.textContent = "Loading WebLLM runtime…";
   progressEl.classList.add("visible");
 
   try {
-    const { pipeline, env } = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3/dist/transformers.min.js");
-
-    if (USE_SPARK) {
-      // Point Transformers.js at a plain HTTP server serving the hf_repo tree.
-      env.remoteHost = SPARK_HOST;
-      env.remotePathTemplate = "{model}";
-      env.allowRemoteModels = true;
-      env.allowLocalModels = false;
-    } else {
-      env.allowLocalModels = false;
-    }
-
-    pipe = await pipeline("text-generation", MODEL_ID, {
-      dtype: "q8", device: DEVICE,
-      progress_callback: (ev) => {
-        if (ev.status === "progress" && ev.loaded && ev.total) {
-          const pct = Math.round(100 * ev.loaded / ev.total);
-          progressBar.style.width = pct + "%";
-          modelStatus.textContent = `Downloading ${ev.file || "model"} — ${pct}%`;
-        }
+    const webllm = await import("https://esm.run/@mlc-ai/web-llm");
+    const appConfig = {
+      model_list: [{
+        model: WEBLLM_WEIGHTS_URL,
+        model_id: WEBLLM_MODEL_ID,
+        model_lib: WEBLLM_MODEL_LIB,
+        overrides: { context_window_size: 4096 },
+      }],
+    };
+    engine = await webllm.CreateMLCEngine(WEBLLM_MODEL_ID, {
+      appConfig,
+      initProgressCallback: (ev) => {
+        // ev.progress is 0..1, ev.text is a human-readable phase string.
+        const pct = Math.round((ev.progress || 0) * 100);
+        progressBar.style.width = pct + "%";
+        modelStatus.textContent = ev.text || `Loading — ${pct}%`;
       },
     });
 
-    // The Qwen chat template lives in a separate chat_template.jinja file in the repo;
-    // Transformers.js only reads `chat_template` inlined in tokenizer_config.json.
-    // Fetch it explicitly and attach it so apply_chat_template() works. Cache-busted so
-    // we can update the template without forcing users to re-download the 1.8 GB model.
-    if (!pipe.tokenizer.chat_template) {
-      try {
-        const base = USE_SPARK
-          ? `${SPARK_HOST}/${MODEL_ID}`
-          : `https://huggingface.co/${MODEL_ID}/resolve/main`;
-        const tmpl = await fetch(`${base}/chat_template.jinja?cb=${Date.now()}`).then(r => r.text());
-        pipe.tokenizer.chat_template = tmpl;
-      } catch (e) {
-        console.warn("Could not fetch chat_template.jinja:", e);
-      }
-    }
-
     modelCard.classList.add("loaded");
-    modelStatus.textContent = `Samsara scholar loaded on ${DEVICE} — answers will be grounded in retrieved passages.`;
+    modelStatus.textContent = "Samsara scholar loaded on WebGPU — answers will be grounded in retrieved passages.";
     loadBtn.style.display = "none";
     progressEl.classList.remove("visible");
   } catch (e) {

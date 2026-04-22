@@ -225,7 +225,12 @@
       ${seeHTML ? `<div class="pop-see"><span class="eyebrow">See also</span>${seeHTML}</div>` : ""}
     `;
 
-    const bookRect = book.getBoundingClientRect();
+    // Use the visible container as the clamp bounds: the reader when
+    // open, otherwise the book panel, falling back to the whole aside.
+    const boundsEl = !reader.hidden ? reader
+                  : (bookInner && !bookInner.hidden ? bookInner
+                  : document.querySelector("aside.book"));
+    const bounds = boundsEl.getBoundingClientRect();
     popover.style.display = "block";
     popover.style.opacity = "0";
     requestAnimationFrame(() => {
@@ -233,20 +238,20 @@
       let top, left;
       if (anchorEl){
         const a = anchorEl.getBoundingClientRect();
-        left = Math.min(
-          Math.max(bookRect.left + 12, a.left - 20),
-          bookRect.right - popRect.width - 12
-        );
+        const minLeft = Math.max(12, bounds.left + 8);
+        const maxLeft = Math.min(window.innerWidth - popRect.width - 12,
+                                 bounds.right - popRect.width - 8);
+        left = Math.min(Math.max(a.left - 20, minLeft), Math.max(minLeft, maxLeft));
         top = a.bottom + 8;
         if (top + popRect.height > window.innerHeight - 12){
           top = Math.max(12, a.top - popRect.height - 8);
         }
       } else {
-        left = bookRect.left + (bookRect.width - popRect.width) / 2;
-        top  = bookRect.top + 80;
+        left = bounds.left + Math.max(0, (bounds.width - popRect.width) / 2);
+        top  = bounds.top + 80;
       }
-      popover.style.left = `${left}px`;
-      popover.style.top  = `${top}px`;
+      popover.style.left = `${Math.max(12, left)}px`;
+      popover.style.top  = `${Math.max(12, top)}px`;
       popover.style.opacity = "1";
     });
   }

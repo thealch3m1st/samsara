@@ -4,6 +4,10 @@ book.pdf
 # Intermediate text extraction (can be regenerated from book.pdf)
 book_text.txt
 book_clean.txt
+glossary_raw.txt
+glossary_parsed.json
+glossary_parsed2.json
+context_extract.json
 
 # Debug crops I made while identifying wheel sections
 wheel_*.png

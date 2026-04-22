@@ -1,0 +1,15 @@
+# Source material — kept local, not tracked
+book.pdf
+
+# Intermediate text extraction (can be regenerated from book.pdf)
+book_text.txt
+book_clean.txt
+
+# Debug crops I made while identifying wheel sections
+wheel_*.png
+outer_ring_*.png
+
+# OS / editor junk
+.DS_Store
+*.swp
+.vscode/

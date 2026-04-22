@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Samsara — the Wheel and the Book</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="intro">
+  <h1>Samsara</h1>
+  <p class="lede">
+    A modern wheel of life, read through
+    <em>The Tibetan Book of the Dead</em>
+    (trans. Gyurme Dorje &amp; Graham Coleman, Penguin Classics).
+    Click any section of the wheel — the six realms, the three poisons at the hub,
+    the wrathful figure holding it, the Buddha who points beyond, the moon, the outer ring —
+    to read what the book has to say about it.
+  </p>
+</header>
+
+<main class="layout">
+
+  <section class="wheel-wrap" aria-label="Interactive wheel">
+    <div class="wheel-stage">
+      <img id="wheel" src="wheel.jpeg" alt="Wheel of Samsara" />
+      <!-- SVG hotspots will be built from masks.json at runtime. -->
+      <svg id="overlay" viewBox="0 0 1254 1254" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+  </section>
+
+  <aside class="book" aria-live="polite">
+    <div id="book-inner">
+      <p class="hint">Click a section of the wheel to open the book.</p>
+    </div>
+  </aside>
+
+</main>
+
+<footer class="foot">
+  <span>See the cycle. Know its nature. Let go.</span>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

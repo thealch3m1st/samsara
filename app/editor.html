@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Samsara · Mask Editor</title>
+<style>
+  :root {
+    --bg: #0b0a08; --bg-2:#14110c; --ink:#efe4c9; --dim:#b9ac8c;
+    --gold:#d4a94a; --gold-b:#f1c866; --rule:#3a2f1d;
+    --sans: -apple-system, "Inter", BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px}
+  header{padding:14px 20px;border-bottom:1px solid var(--rule);background:var(--bg-2);
+    display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  h1{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;letter-spacing:.25em;
+     text-transform:uppercase;font-size:18px;margin:0;color:var(--gold-b)}
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;padding:20px}
+  .canvas-wrap{position:relative;background:#000;border:1px solid var(--rule);border-radius:8px;
+               overflow:hidden;aspect-ratio:1/1}
+  .canvas-wrap img, .canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .canvas-wrap canvas{cursor:crosshair}
+  aside{background:var(--bg-2);border:1px solid var(--rule);border-radius:8px;padding:16px;
+        display:flex;flex-direction:column;gap:12px;height:fit-content;position:sticky;top:20px;max-height:calc(100vh - 40px);overflow:auto}
+  aside h2{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:6px 0 4px}
+  .region-list{display:flex;flex-direction:column;gap:4px}
+  .region-list button{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;
+    border:1px solid var(--rule);background:#1a1610;color:var(--ink);cursor:pointer;
+    font-family:var(--sans);font-size:13px;text-align:left;transition:all .15s}
+  .region-list button:hover{border-color:var(--gold);background:#241f16}
+  .region-list button.active{border-color:var(--gold-b);background:#2a231a;
+     box-shadow:0 0 0 2px rgba(241,200,102,.2)}
+  .region-list button .sw{width:14px;height:14px;border-radius:3px;border:1px solid #000}
+  .region-list button .tick{margin-left:auto;color:var(--gold-b);opacity:0;font-weight:700}
+  .region-list button.has-path .tick{opacity:1}
+  .tool-row{display:flex;gap:8px;flex-wrap:wrap}
+  .tool-row button, .big-btn{
+    flex:1;padding:9px 12px;border-radius:6px;border:1px solid var(--rule);
+    background:#1a1610;color:var(--ink);cursor:pointer;font-family:var(--sans);font-size:13px}
+  .tool-row button:hover, .big-btn:hover{border-color:var(--gold)}
+  .primary{background:var(--gold);color:#1a1a0a;border-color:var(--gold);font-weight:600}
+  .primary:hover{background:var(--gold-b);border-color:var(--gold-b)}
+  label{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:12px}
+  input[type=range]{flex:1}
+  .hint{color:var(--dim);font-size:12px;line-height:1.5;background:#15120c;border-left:2px solid var(--gold);padding:8px 10px;border-radius:2px}
+  .hint kbd{background:#2a231a;border:1px solid var(--rule);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--ink)}
+  pre{background:#0a0906;border:1px solid var(--rule);border-radius:6px;padding:10px;
+      font-size:11px;max-height:160px;overflow:auto;color:var(--dim);white-space:pre-wrap;word-break:break-all}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Samsara · Mask Editor</h1>
+  <div style="color:var(--dim);font-size:12px">Draw regions, export JSON → I'll turn them into clickable SVG.</div>
+</header>
+
+<div class="layout">
+
+  <div class="canvas-wrap" id="stage">
+    <img id="wheel" src="wheel.jpeg" alt="" />
+    <canvas id="cv" width="1254" height="1254"></canvas>
+  </div>
+
+  <aside>
+    <div id="save-indicator" style="font-size:11px;color:var(--dim);text-align:center;padding:6px 10px;border:1px solid var(--rule);border-radius:6px;">Nothing drawn yet.</div>
+    <h2>Region</h2>
+    <div class="region-list" id="regions"></div>
+
+    <h2>Tool</h2>
+    <div class="tool-row">
+      <button id="mode-poly"   class="active">Polygon (click)</button>
+      <button id="mode-free">Freehand (drag)</button>
+    </div>
+    <label><span>Thickness</span>
+      <input type="range" id="thick" min="2" max="20" value="6" />
+    </label>
+    <div class="tool-row">
+      <button id="undo">Undo last point</button>
+      <button id="clear-current">Clear this region</button>
+    </div>
+    <div class="tool-row">
+      <button id="close-poly" class="primary">Close polygon ⏎</button>
+    </div>
+
+    <h2>File</h2>
+    <div class="tool-row">
+      <button id="save-local">Save to localStorage</button>
+      <button id="load-local">Load</button>
+    </div>
+    <div class="tool-row">
+      <button id="download" class="big-btn primary">Download masks.json</button>
+    </div>
+    <div class="tool-row">
+      <button id="clear-all">Clear ALL regions</button>
+    </div>
+
+    <div class="hint">
+      1. Pick a region on the left (e.g. <b>Deva</b>).<br>
+      2. Click around its boundary to drop points — a polygon fills in.<br>
+      3. Press <kbd>Enter</kbd> or click <b>Close polygon</b> to finish it.<br>
+      4. Move to the next region. Rough is fine!<br>
+      5. Hit <b>Download masks.json</b> and hand me the file.
+    </div>
+
+    <h2>Preview JSON</h2>
+    <pre id="json-preview">{}</pre>
+  </aside>
+
+</div>
+
+<script>
+const REGIONS = [
+  {key:"deva",     name:"Deva (top)",              color:"#f1c866"},
+  {key:"asura",    name:"Asura (upper-left)",      color:"#b9433b"},
+  {key:"human",    name:"Human (upper-right)",     color:"#4a7c4f"},
+  {key:"animal",   name:"Animal (lower-left)",     color:"#8b7330"},
+  {key:"ghost",    name:"Hungry Ghost (lower-right)", color:"#6b3a8f"},
+  {key:"hell",     name:"Hell (bottom)",           color:"#8a2a1d"},
+  {key:"greed",    name:"Greed (center top)",      color:"#ffaa00"},
+  {key:"aversion", name:"Aversion (center lower-left)", color:"#ff4444"},
+  {key:"delusion", name:"Delusion (center lower-right)", color:"#aa77ff"},
+  {key:"yama",     name:"Yama (wrathful face, top)", color:"#ff66ff"},
+  {key:"buddha",   name:"Buddha (top-left corner)", color:"#66ffcc"},
+  {key:"moon",     name:"Moon (top-right corner)",  color:"#ffffff"},
+  {key:"outer",    name:"Outer ring (modern links)", color:"#66ccff"},
+  {key:"caption",  name:"Bottom caption",           color:"#88ff88"},
+];
+
+const state = {
+  current: "deva",
+  mode: "poly",              // or "free"
+  thick: 6,
+  paths: {},                 // key -> [[x,y], ...] polygon in image coords (1254)
+  drafting: [],              // vertices being built for the current region
+  freeDrawing: false,
+};
+
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+const IMG_SIZE = 1254;
+
+// Build region list UI
+const listEl = document.getElementById('regions');
+REGIONS.forEach(r => {
+  const b = document.createElement('button');
+  b.dataset.key = r.key;
+  b.innerHTML = `<span class="sw" style="background:${r.color}"></span><span>${r.name}</span><span class="tick">✓</span>`;
+  b.onclick = () => selectRegion(r.key);
+  listEl.appendChild(b);
+});
+
+function selectRegion(key){
+  // Commit any drafting to current first
+  commitDraftIfAny();
+  state.current = key;
+  state.drafting = [];
+  refreshUI();
+  redraw();
+}
+
+function refreshUI(){
+  [...listEl.children].forEach(b => {
+    b.classList.toggle('active', b.dataset.key === state.current);
+    b.classList.toggle('has-path', Array.isArray(state.paths[b.dataset.key]) && state.paths[b.dataset.key].length >= 3);
+  });
+  document.getElementById('mode-poly').classList.toggle('active', state.mode==='poly');
+  document.getElementById('mode-free').classList.toggle('active', state.mode==='free');
+  document.getElementById('json-preview').textContent = JSON.stringify(state.paths, null, 2);
+  const n = Object.keys(state.paths).length;
+  const ind = document.getElementById('save-indicator');
+  if (ind){
+    ind.textContent = n === 0
+      ? 'Nothing drawn yet.'
+      : `✓ ${n} of ${REGIONS.length} regions saved`;
+    ind.style.color = n === 0 ? 'var(--dim)' : 'var(--gold-b)';
+    ind.style.borderColor = n === 0 ? 'var(--rule)' : 'var(--gold)';
+  }
+}
+
+// Warn before closing/reloading if there's unsaved draft
+window.addEventListener('beforeunload', (e) => {
+  if (state.drafting.length > 0){
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+function imgPt(evt){
+  const rect = canvas.getBoundingClientRect();
+  const x = (evt.clientX - rect.left) * (IMG_SIZE / rect.width);
+  const y = (evt.clientY - rect.top)  * (IMG_SIZE / rect.height);
+  return [Math.round(x), Math.round(y)];
+}
+
+canvas.addEventListener('pointerdown', e => {
+  if (state.mode === 'poly'){
+    state.drafting.push(imgPt(e));
+    redraw();
+  } else {
+    state.freeDrawing = true;
+    state.drafting = [imgPt(e)];
+    canvas.setPointerCapture(e.pointerId);
+  }
+});
+canvas.addEventListener('pointermove', e => {
+  if (state.mode === 'poly'){
+    redraw(imgPt(e));
+  } else if (state.freeDrawing){
+    const p = imgPt(e);
+    const last = state.drafting[state.drafting.length-1];
+    if (Math.hypot(p[0]-last[0], p[1]-last[1]) > 6) {
+      state.drafting.push(p);
+      redraw();
+    }
+  }
+});
+canvas.addEventListener('pointerup', e => {
+  if (state.mode === 'free'){
+    state.freeDrawing = false;
+    canvas.releasePointerCapture?.(e.pointerId);
+    commitDraftIfAny();
+  }
+});
+canvas.addEventListener('pointerleave', () => { redraw(); });
+canvas.addEventListener('pointerout',   () => { redraw(); });
+canvas.addEventListener('dblclick', () => {
+  if (state.mode === 'poly') commitDraftIfAny();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter'){ commitDraftIfAny(); }
+  if (e.key === 'Escape'){ state.drafting = []; redraw(); }
+  if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey)){
+    if (state.drafting.length) state.drafting.pop();
+    redraw();
+    e.preventDefault();
+  }
+});
+
+function commitDraftIfAny(){
+  if (state.drafting.length >= 3){
+    state.paths[state.current] = state.drafting.slice();
+    try { localStorage.setItem('samsara-masks', JSON.stringify(state.paths)); } catch {}
+  }
+  state.drafting = [];
+  refreshUI();
+  redraw();
+}
+
+function redraw(hoverPt){
+  ctx.clearRect(0,0,IMG_SIZE,IMG_SIZE);
+
+  // Draw all committed regions (translucent fill)
+  REGIONS.forEach(r => {
+    const pts = state.paths[r.key];
+    if (!pts || pts.length < 3) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    ctx.fillStyle = hexA(r.color, r.key === state.current ? 0.50 : 0.38);
+    ctx.fill();
+    // outline: a dark halo under a bright color stroke so it pops on any background
+    ctx.lineWidth = r.key === state.current ? 10 : 7;
+    ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+    ctx.stroke();
+    ctx.lineWidth = r.key === state.current ? 6 : 4;
+    ctx.strokeStyle = r.color;
+    ctx.stroke();
+  });
+
+  // Current draft
+  const cur = REGIONS.find(r=>r.key===state.current);
+  if (state.drafting.length){
+    ctx.beginPath();
+    ctx.moveTo(state.drafting[0][0], state.drafting[0][1]);
+    for (let i=1;i<state.drafting.length;i++) ctx.lineTo(state.drafting[i][0], state.drafting[i][1]);
+    if (hoverPt && state.mode==='poly') ctx.lineTo(hoverPt[0], hoverPt[1]);
+    ctx.lineWidth = state.thick;
+    ctx.strokeStyle = cur.color;
+    ctx.stroke();
+    // vertex dots
+    ctx.fillStyle = cur.color;
+    state.drafting.forEach(([x,y]) => { ctx.beginPath(); ctx.arc(x,y,state.thick+2,0,Math.PI*2); ctx.fill(); });
+  }
+}
+
+function hexA(hex, a){
+  const n = parseInt(hex.slice(1), 16);
+  const r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// Buttons
+document.getElementById('mode-poly').onclick = () => { state.mode='poly'; refreshUI(); };
+document.getElementById('mode-free').onclick = () => { state.mode='free'; refreshUI(); };
+document.getElementById('thick').oninput = e => { state.thick = +e.target.value; };
+document.getElementById('undo').onclick = () => { if (state.drafting.length) state.drafting.pop(); redraw(); };
+document.getElementById('clear-current').onclick = () => {
+  delete state.paths[state.current]; state.drafting=[]; refreshUI(); redraw();
+};
+document.getElementById('close-poly').onclick = commitDraftIfAny;
+
+document.getElementById('save-local').onclick = () => {
+  localStorage.setItem('samsara-masks', JSON.stringify(state.paths));
+  alert('Saved ' + Object.keys(state.paths).length + ' regions');
+};
+document.getElementById('load-local').onclick = () => {
+  const s = localStorage.getItem('samsara-masks');
+  if (s){ state.paths = JSON.parse(s); refreshUI(); redraw(); }
+};
+document.getElementById('clear-all').onclick = () => {
+  if (confirm('Clear ALL regions?')){ state.paths={}; state.drafting=[]; refreshUI(); redraw(); }
+};
+document.getElementById('download').onclick = () => {
+  const blob = new Blob([JSON.stringify(state.paths, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'masks.json';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// auto-load last session
+try {
+  const s = localStorage.getItem('samsara-masks');
+  if (s) state.paths = JSON.parse(s);
+} catch {}
+
+selectRegion('deva');
+</script>
+</body>
+</html>
